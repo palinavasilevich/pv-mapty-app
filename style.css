@@ -67,6 +67,7 @@ a:visited {
 }
 
 .workout {
+  position: relative;
   background-color: var(--color-dark--2);
   border-radius: 5px;
   padding: 1.5rem 2.25rem;
