@@ -33,9 +33,9 @@ class Workout {
     } ${this.date.getDate()}`;
   }
 
-  click() {
-    this.clicks++;
-  }
+  // click() {
+  //   this.clicks++;
+  // }
 }
 
 class Running extends Workout {
@@ -78,6 +78,7 @@ class App {
   #mapZoomLevel = 13;
   #mapEvent;
   #workouts = [];
+  #mapMarkers = new Map();
 
   constructor() {
     // Get user's position
@@ -212,8 +213,54 @@ class App {
     this._setWorkoutsToLocalStorage();
   }
 
+  // Handle remove workout
+  _removeWorkout(e) {
+    e.stopPropagation();
+
+    const removeBtn = e.target.closest('.workout__remove-btn');
+
+    if (removeBtn) {
+      const workoutEl = e.target.closest('.workout');
+
+      if (!workoutEl) return;
+
+      const workoutId = workoutEl.dataset.id;
+
+      // Remove workout from UI
+      this._removeWorkoutUI(workoutEl);
+
+      // Remove workout marker from the map
+      this._removeWorkoutMarker(workoutId);
+
+      // Remove workout from storage
+      this._removeWorkoutFromStorage(workoutId);
+    }
+  }
+
+  _removeWorkoutUI(workoutElement) {
+    workoutElement.remove();
+  }
+
+  _removeWorkoutMarker(workoutId) {
+    const marker = this.#mapMarkers.get(workoutId);
+    if (!marker) return;
+
+    marker.remove();
+  }
+
+  _removeWorkoutFromStorage(workoutId) {
+    const workoutIndex = this.#workouts.findIndex(
+      workout => workout.id === workoutId
+    );
+
+    if (workoutIndex !== -1) {
+      this.#workouts.splice(workoutIndex, 1);
+      this._setWorkoutsToLocalStorage();
+    }
+  }
+
   _renderWorkoutMarker(workout) {
-    L.marker(workout.coords)
+    const marker = L.marker(workout.coords)
       .addTo(this.#map)
       .bindPopup(
         L.popup({
@@ -228,11 +275,14 @@ class App {
         `${workout.type === 'running' ? '🏃‍♂️' : '🚴‍♀️'} ${workout.description}`
       )
       .openPopup();
+
+    this.#mapMarkers.set(workout.id, marker);
   }
 
   _renderWorkout(workout) {
     let html = `
         <li class="workout workout--${workout.type}" data-id="${workout.id}">
+          <button class='workout__remove-btn'>×</button>
           <h2 class="workout__title">${workout.description}</h2>
           <div class="workout__details">
             <span class="workout__icon">${
@@ -281,6 +331,10 @@ class App {
     }
 
     form.insertAdjacentHTML('afterend', html);
+
+    const removeBtn = document.querySelector('.workout__remove-btn');
+
+    removeBtn.addEventListener('click', this._removeWorkout.bind(this));
   }
 
   _moveToPopup(e) {
